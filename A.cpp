@@ -266,7 +266,8 @@ hit base(string& r, string& rc, int k, i64 id) {
 
 
 
-hit align(string& r, i64 id) {
+hit align(string& r, i64 id) 
+{
     string rc = REV(r);
     for (int k: ks) {
         if (sz(r) / (k + 1) < MIN_SEED) {
@@ -293,9 +294,9 @@ void solve() {
             continue;
         }
 
-        for (char ch: line) {
-            if (isalpha(ch)) {
-                t += toupper(ch);
+        for (char c: line) {
+            if (isalpha(c)) {
+                t += toupper(c);
             }
         }
     }
@@ -305,7 +306,7 @@ void solve() {
     sa = SUFFIX_ARRAY(t);
 
     double t_idx = 1.0 * clock() / CLOCKS_PER_SEC;
-    cerr << "genome " << n << " bp, SA built in " << t_idx << " s\n";
+    cerr << "genome " << n << " bp, suf array build in " << t_idx << " s\n";
 
     int kmx = ks.back();
     i64 tot = 0, mapped = 0, uniq = 0, multi = 0, rev = 0, len_sum = 0, ed_sum = 0, q_map = 0, q_unm = 0, b_map = 0, b_unm = 0;
@@ -320,9 +321,10 @@ void solve() {
         hit h = align(r, tot);
         tot++;
         int m = sz(r);
+
         i64 q_sum = 0;
-        for (char ch: qual) {
-            q_sum += ch - 33;
+        for (char c: qual) {
+            q_sum += c - 33;
         }
 
         if (h.ed <= kmx) {
@@ -366,7 +368,6 @@ void solve() {
     double t_all = 1.0 * clock() / CLOCKS_PER_SEC;
 
 
-
     auto pct = [](i64 a, i64 b) { return b? 100.0 * a / b: 0.0; };
     cout << fixed << setprecision(2);
     cout << "genome length: " << n << "\n";
@@ -384,10 +385,10 @@ void solve() {
         acc += cnt_ed[e];
         cout << "ed = " << e << ": " << cnt_ed[e] << " (" << pct(cnt_ed[e], tot) << "% of all, cumulative " << pct(acc, tot) << "%)\n";
     }
+
     cout << "mean edit distance: " << (mapped? 1.0 * ed_sum / mapped: 0.0) << "\n";
     cout << "mean identity: " << (len_sum? 100.0 * (1.0 - 1.0 * ed_sum / len_sum): 0.0) << "%\n";
     cout << "mean base quality: mapped " << (b_map? 1.0 * q_map / b_map: 0.0) << ", unmapped " << (b_unm? 1.0 * q_unm / b_unm: 0.0) << "\n";
-
 
 
 
@@ -396,6 +397,7 @@ void solve() {
         i64 sum = 0, c1 = 0, c10 = 0;
         int cur = 0, mx = 0;
         vector<int> dep(n);
+
         for (int i = 0; i < n; i++) {
             cur += d[i];
             dep[i] = cur;
@@ -404,6 +406,7 @@ void solve() {
             c10 += cur >= 10;
             mx = max(mx, cur);
         }
+
         nth_element(dep.begin(), dep.begin() + n / 2, dep.end());
         cout << "\ncoverage (" << (z? "unique reads only": "all mapped reads") << "):\n";
         cout << "covered bases (>= 1x): " << c1 << " / " << n << " (" << pct(c1, n) << "%)\n";
