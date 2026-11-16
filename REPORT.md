@@ -1,84 +1,77 @@
 # Genome read mapping: E. coli K-12 MG1655
 
-Reference: `GCF_000005845.2_ASM584v2` (4,641,652 bp).
-Reads: `ERR022075_1.fastq`, 22,720,100 single-end reads of 100 bp. The full dataset was processed.
+Reference: `GCF_000005845.2_ASM584v2`, 4,641,652 bp.
+Reads: `ERR022075_1.fastq`, 22,720,100 single-end reads of 100 bp. I processed the full dataset.
 
 
-## Algorithms used
-- Suffix array [prefix doubling]
-- Binary search
-- Banded DP [edit distance]
-- Reverse complement search
-- Difference array
+## My algorithms
+
+- Suffix array of the reference (prefix doubling)
+- Binary search over the suffix array
 - Pigeonhole seeding
+- Banded DP for edit distance
+- Reverse complement search
+- Difference array for coverage
 
-## Definition of "mapped"
+Each read is cut into k+1 pieces. Every piece is searched exactly in the suffix array, on both strands, and each hit is checked with a banded DP. This is done for k = 3, 6, 9, and a read goes to the next pass only if it is still unmapped.
 
-A read is mapped if there is a position on the forward or reverse strand where the edit distance (substitutions, insertions, deletions) between the **whole read** and a genome substring is **at most 9**. There is no clipping, and `N` counts as an error.
 
-Confidence in optimality: by the pigeonhole argument the search is exhaustive for this threshold, and the reported distance is the minimum one. On small synthetic genomes the output was compared with a full DP over the whole genome on both strands for 6,000 reads, with no differences.
+## What is mapped?
+
+A read is mapped if somewhere in the genome, on either strand, the edit distance between the whole read and a genome substring is at most 9. Nothing is clipped, and `N` counts as an error.
+
+No such read is missed: with at most k edits and k+1 pieces, one piece has no edits and is found exactly, and the DP band of ±k around it covers the whole alignment.
+
+A read is unique if one place has the best distance, and multi-mapped if several do.
+
 
 ## Results
 
-| Metric | Value |
-|---|---|
-| Total reads processed | 22,720,100 |
-| Mapped | 22,458,693 (98.85%) |
-| Unmapped | 261,407 (1.15%) |
-| Uniquely mapped | 22,041,477 (97.01% of all, 98.14% of mapped) |
-| Multi-mapped | 417,216 (1.84% of all, 1.86% of mapped) |
-| Forward / reverse strand | 11,237,053 / 11,221,640 |
+```
+genome length: 4641652
+threshold: edit distance <= 9 over the whole read
+total reads: 22720100
+mapped reads: 22458693 (98.85%)
+unmapped reads: 261407 (1.15%)
+unique: 22041477 (97.01% of all, 98.14% of mapped)
+multi-mapped: 417216 (1.84% of all, 1.86% of mapped)
+forward / reverse: 11237053 / 11221640
 
-A read is unique if exactly one locus has the best edit distance, and multi-mapped if several non-overlapping loci share it. A multi-mapped read is assigned to one of its best loci (read index modulo number of loci).
+edit distance distribution (mapped reads):
+ed = 0: 19387428 (85.33% of all, cumulative 85.33%)
+ed = 1: 1927089 (8.48% of all, cumulative 93.81%)
+ed = 2: 489377 (2.15% of all, cumulative 95.97%)
+ed = 3: 237886 (1.05% of all, cumulative 97.01%)
+ed = 4: 142497 (0.63% of all, cumulative 97.64%)
+ed = 5: 94300 (0.42% of all, cumulative 98.06%)
+ed = 6: 66156 (0.29% of all, cumulative 98.35%)
+ed = 7: 49058 (0.22% of all, cumulative 98.56%)
+ed = 8: 36533 (0.16% of all, cumulative 98.72%)
+ed = 9: 28369 (0.12% of all, cumulative 98.85%)
+mean edit distance: 0.26
+mean identity: 99.74%
+mean base quality: mapped 36.37, unmapped 18.13
 
-## Alignment quality
+coverage (all mapped reads):
+covered bases (>= 1x): 4640887 / 4641652 (99.98%)
+covered bases (>= 10x): 4638160 (99.92%)
+mean depth: 483.77x, median 494x, max 1032x
 
-| Edit distance | Reads | % of all | Cumulative % |
-|---|---|---|---|
-| 0 | 19,387,428 | 85.33 | 85.33 |
-| 1 | 1,927,089 | 8.48 | 93.81 |
-| 2 | 489,377 | 2.15 | 95.97 |
-| 3 | 237,886 | 1.05 | 97.01 |
-| 4 | 142,497 | 0.63 | 97.64 |
-| 5 | 94,300 | 0.42 | 98.06 |
-| 6 | 66,156 | 0.29 | 98.35 |
-| 7 | 49,058 | 0.22 | 98.56 |
-| 8 | 36,533 | 0.16 | 98.72 |
-| 9 | 28,369 | 0.12 | 98.85 |
+coverage (unique reads only):
+covered bases (>= 1x): 4567691 / 4641652 (98.41%)
+covered bases (>= 10x): 4564057 (98.33%)
+mean depth: 474.78x, median 491x, max 1032x
 
-- Mean edit distance of mapped reads: 0.26; mean identity: 99.74%.
-- The table is also the mapping rate for every threshold from 0 to 9. The last step adds 0.12% of reads, so the threshold sits on the plateau.
-- Mean base quality: 36.37 for mapped reads, 18.13 for unmapped reads. Unmapped reads are mostly low-quality reads.
-
-## Genome read coverage
-
-| | All mapped reads | Unique reads only |
-|---|---|---|
-| Bases covered >= 1x | 4,640,887 (99.98%) | 4,567,691 (98.41%) |
-| Bases covered >= 10x | 4,638,160 (99.92%) | 4,564,057 (98.33%) |
-| Mean depth | 483.77x | 474.78x |
-| Median depth | 494x | 491x |
-| Max depth | 1032x | 1032x |
-
-The 1.6% of the genome not covered by unique reads are repeated regions, where a 100 bp read cannot be placed unambiguously.
-
-## Performance
-
-MacBook Air M4, single thread: suffix array built in 0.82 s, total run 174.51 s (CPU time), about 131,000 reads/s.
-
-## Limitations
-
-- No soft clipping: reads with adapter sequence or a badly damaged tail fail the whole-read threshold.
-- The genome is circular, but reads spanning the junction between its end and start are not handled.
-- Reads whose best alignment needs more than 9 edits are reported as unmapped.
-
-## How to run
-
-Put `A.cpp`, `GCF_000005845.2_ASM584v2_genomic.fna` and `ERR022075_1.fastq` in one folder, then:
-
-```bash
-g++ -O2 -std=c++17 A.cpp -o A
-./A > report.txt
+index time: 0.82 s
+total time: 174.51 s
 ```
 
-Progress is printed to stderr, the statistics to stdout.
+
+Mapping rate: 98.85% of reads are mapped, 97.01% uniquely and 1.84% to several places.
+
+Alignment quality: 85.33% of reads match exactly, and the mean identity is 99.74%. The last threshold step, from 8 to 9, adds only 0.12% of reads. Unmapped reads have much lower base quality (18.13 against 36.37).
+
+Coverage: 99.98% of the genome is covered, with a mean depth of 483.77x. Unique reads alone cover 98.41%; the rest are repeats.
+
+
+Speed is 174.51 s for all reads on one thread on MacBook Air M4.
